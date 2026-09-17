@@ -86,6 +86,20 @@ test("music continuation respects pause, visibility and blocked playback",t=>{
   c.next();assert.equal(p.loads.length,1); // Explicit Next still only cues.
 });
 
+test("pause or visibility loss cancels an in-flight music continuation",t=>{
+  for(const hide of [false,true]){
+    const {c,p}=setup();t.after(()=>c.destroy());
+    p.state(1);p.state(0);assert.equal(p.loads.length,1);
+    if(hide){c.setVisible(false);c.setVisible(true);}else c.pause();
+    assert.equal(p.cues.length,2);
+    const paused=p.paused;p.state(1);
+    assert.equal(p.paused,paused+1);assert.notEqual(c.snapshot.status,"playing");
+    p.state(5);assert.equal(c.snapshot.status,"ready");
+    assert.equal(c.playFromGesture(),true);p.state(1);
+    assert.equal(c.snapshot.status,"playing");
+  }
+});
+
 test("launch playback requires a visible ready player and never carries over to a later cue",t=>{
   const {c,p}=setup();t.after(()=>c.destroy());
   c.setVisible(false);assert.equal(c.playFromGesture(),false);assert.equal(p.playRequests,0);

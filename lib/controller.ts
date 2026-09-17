@@ -11,6 +11,8 @@ export class SourceController {
   private history:string[] = [];
   private start:number;
   private endHandled = false;
+  private continuing = false;
+  private waitForCue = false;
   private awaitingId:string|null=null;
   private attachment=0;
   private timer:ReturnType<typeof setInterval> | null = null;
@@ -33,7 +35,7 @@ export class SourceController {
     if (Object.keys(values).every(k => this.snapshot[k as keyof PlayerSnapshot] === next[k as keyof PlayerSnapshot])) return;
     this.snapshot=next; this.listeners.forEach(fn=>fn(next));
   }
-  fail(message:string) {this.update({status:"error",message});}
+  fail(message:string) {this.continuing=false;this.update({status:"error",message});}
   attach(api:YouTubeAPI, element:HTMLElement, origin:string) {
     if (!this.alive) return;
     this.detach();
@@ -52,7 +54,7 @@ export class SourceController {
         },
         onStateChange:({data})=>{if(current())this.handleState(data);},
         onError:({data})=>{if(current())this.fail(playbackError(data));},
-        onAutoplayBlocked:()=>{if(current())this.update({status:"blocked",message:"Press Play in the video to continue."});},
+        onAutoplayBlocked:()=>{if(current()){this.continuing=false;this.update({status:"blocked",message:"Press Play in the video to continue."});}},
         onPlaybackRateChange:({data})=>{if(current())this.update({rate:data});},
       }
     };
@@ -63,13 +65,17 @@ export class SourceController {
     this.awaitingId=this.snapshot.source.id;
     this.update({status:"loading",time:this.start,message:""});
     const selection={videoId:this.snapshot.source.id,startSeconds:this.start};
+    this.continuing=continueMusic;
     if(continueMusic){
       try {this.player.loadVideoById(selection);}
-      catch {this.player.cueVideoById(selection);this.update({status:"blocked",message:"Press Play in the video to continue."});}
+      catch {this.continuing=false;this.player.cueVideoById(selection);this.update({status:"blocked",message:"Press Play in the video to continue."});}
     }else this.player.cueVideoById(selection);
   }
   handleState(data:number) {
     if (!this.alive) return;
+    if(data===1 && this.waitForCue){this.player?.pauseVideo();return;}
+    if(data===5)this.waitForCue=false;
+    if(data===1)this.continuing=false;
     if (data === 1 && (!this.allowed || (typeof document !== "undefined" && document.hidden))) {
       this.pause(); return;
     }
@@ -135,11 +141,17 @@ export class SourceController {
   }
   pause() {
     if(!this.ready) return;
+    if(this.continuing){
+      // Cancel the pending auto-load in YouTube itself. Ignore late PLAYING
+      // until the replacement acknowledges a manual-only cue.
+      this.waitForCue=true;this.cue();return;
+    }
     this.player?.pauseVideo();
     if(this.snapshot.status==="playing"||this.snapshot.status==="buffering") this.update({status:"paused"});
   }
   setVisible(visible:boolean) {this.allowed=visible; if(!visible)this.pause();}
   detach() {
+    this.continuing=false;this.waitForCue=false;
     this.attachment++;
     if(this.timer) clearInterval(this.timer);
     this.timer=null; this.ready=false;
