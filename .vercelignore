@@ -1,0 +1,17 @@
+node_modules
+.next
+.next-production
+.vinext
+.wrangler
+.sites-runtime
+.openai
+.agents
+.codex
+.env*
+dist
+out
+outputs
+work
+docs
+tests
+*.tsbuildinfo
