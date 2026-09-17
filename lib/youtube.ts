@@ -1,5 +1,6 @@
 export interface YouTubePlayer {
   cueVideoById(options:{videoId:string;startSeconds:number}): void;
+  loadVideoById(options:{videoId:string;startSeconds:number}): void;
   playVideo(): void;
   pauseVideo(): void;
   setVolume(n:number): void;

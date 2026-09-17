@@ -8,9 +8,11 @@ import {playbackError,type PlayerOptions,type YouTubePlayer} from "../lib/youtub
 
 class FakePlayer implements YouTubePlayer {
   id=""; time=0; volume=50; muted=false; destroyed=false; paused=0; playRequests=0; cues:{videoId:string;startSeconds:number}[]=[];
+  loads:{videoId:string;startSeconds:number}[]=[];
   constructor(_element:HTMLElement,readonly options:PlayerOptions) {}
   ready(){this.options.events.onReady({target:this,data:0});}
   cueVideoById(cue:{videoId:string;startSeconds:number}){this.cues.push(cue);this.id=cue.videoId;this.time=cue.startSeconds;}
+  loadVideoById(cue:{videoId:string;startSeconds:number}){this.loads.push(cue);this.id=cue.videoId;this.time=cue.startSeconds;}
   pauseVideo(){this.paused++;}
   playVideo(){this.playRequests++;}
   setVolume(n:number){this.volume=n;}
@@ -34,8 +36,8 @@ function setup(kind:"music"|"asmr"|"pink-noise"="music",seed=42) {
   return {c,p:player};
 }
 
-test("manual cue and indefinite replacement never request automatic playback",t=>{
-  const {c,p}=setup();t.after(()=>c.destroy());
+test("ASMR replacements remain cued for manual playback",t=>{
+  const {c,p}=setup("asmr");t.after(()=>c.destroy());
   assert.equal(p.options.playerVars.autoplay,0);
   assert.equal(c.snapshot.status,"ready");
   let last=c.snapshot.source.id;
@@ -50,6 +52,38 @@ test("manual cue and indefinite replacement never request automatic playback",t=
   }
   assert.equal(p.cues.length,101);
   assert.equal(p.playRequests,0);
+  assert.equal(p.loads.length,0);
+});
+
+test("music continues through repeated endings without resetting other layers",t=>{
+  const {c,p}=setup();const asmr=setup("asmr"),pink=setup("pink-noise");
+  t.after(()=>[c,asmr.c,pink.c].forEach(c=>c.destroy()));
+  asmr.p.state(1);pink.p.state(1);const others=[{...asmr.c.snapshot},{...pink.c.snapshot}];
+  assert.equal(p.loads.length,0);
+  for(let i=0;i<100;i++){
+    const last=c.snapshot.source.id;p.state(1);p.state(0);
+    assert.notEqual(c.snapshot.source.id,last);
+    assert.equal(p.loads.length,i+1);
+    assert.equal(p.loads.at(-1)?.videoId,c.snapshot.source.id);
+    assert.equal(p.loads.at(-1)?.startSeconds,c.snapshot.time);
+    p.state(0);p.state(5);p.state(0);
+    assert.equal(p.loads.length,i+1);
+  }
+  assert.deepEqual([asmr.c.snapshot,pink.c.snapshot],others);
+  assert.equal(p.cues.length,1);
+});
+
+test("music continuation respects pause, visibility and blocked playback",t=>{
+  const {c,p}=setup();t.after(()=>c.destroy());
+  p.state(1);c.pause();p.state(0);assert.equal(p.loads.length,0);
+  p.state(1);c.setVisible(false);p.state(0);assert.equal(p.loads.length,0);
+  c.setVisible(true);p.state(1);p.state(0);assert.equal(p.loads.length,1);
+  p.options.events.onAutoplayBlocked({target:p,data:0});
+  assert.equal(c.snapshot.status,"blocked");
+  p.state(0);assert.equal(p.loads.length,1);
+  assert.equal(c.playFromGesture(),true);
+  assert.equal(p.playRequests,1);
+  c.next();assert.equal(p.loads.length,1); // Explicit Next still only cues.
 });
 
 test("launch playback requires a visible ready player and never carries over to a later cue",t=>{

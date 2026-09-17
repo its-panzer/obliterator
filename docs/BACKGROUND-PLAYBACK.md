@@ -1,12 +1,14 @@
 # Launch and background playback options
 
-Reviewed September 17, 2026. The current mode uses visible YouTube players. At the user's request, the launch click now attempts both prepared players directly, with native Play buttons as fallback. Page-load autoplay and automatic replacements remain disabled.
+Reviewed September 17, 2026. The current mode uses visible YouTube players. At the user's request, the launch click now attempts both prepared players directly, with native Play buttons as fallback. Page-load autoplay remains disabled. Music now advances and starts its next source automatically after an ending; ASMR and pink-noise replacements remain manual.
 
 ## YouTube mode
 
 True automatic startup of both layers conflicts with YouTube's limit of one automatically playing player per page/screen. Automatic playback also requires more than half of the player to be visible. Browser rules may independently block audible autoplay. Sources: [YouTube playback requirements](https://developers.google.com/youtube/terms/required-minimum-functionality#autoplay-and-scripted-playbacks), [Chrome autoplay](https://developer.chrome.com/blog/autoplay), [Safari autoplay](https://webkit.org/blog/7734/auto-play-policy-changes-for-macos/).
 
 An explicit launch click calling `playVideo()` on two already prepared players is distinct from automatic page-load playback. The API permits scripted playback, but the published minimum-functionality wording does not unambiguously classify this exact simultaneous user-initiated arrangement. It should not be represented as guaranteed to work or certified compliant. Any experiment would need per-player blocked-playback handling and visible native controls. See the [IFrame API](https://developers.google.com/youtube/iframe_api_reference#onAutoplayBlocked).
+
+Music is the only layer with automatic continuation. After it ends while visible and playing, the controller selects a different source and uses the documented `loadVideoById` API. Duplicate ending events are ignored until playback starts again. Pause/offscreen states do not trigger automatic continuation; blocked playback exposes native Play without retry loops.
 
 The local experiment requests both starts synchronously from the actual click, after revealing the players. It does not stagger starts or retry after delayed readiness. The in-app browser started both successfully; other browsers and early clicks may still need native Play.
 

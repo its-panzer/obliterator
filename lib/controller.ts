@@ -58,11 +58,15 @@ export class SourceController {
     };
     this.player=new api.Player(element,options);
   }
-  private cue() {
+  private cue(continueMusic=false) {
     if (!this.ready || !this.player || !this.alive) return;
     this.awaitingId=this.snapshot.source.id;
     this.update({status:"loading",time:this.start,message:""});
-    this.player.cueVideoById({videoId:this.snapshot.source.id,startSeconds:this.start});
+    const selection={videoId:this.snapshot.source.id,startSeconds:this.start};
+    if(continueMusic){
+      try {this.player.loadVideoById(selection);}
+      catch {this.player.cueVideoById(selection);this.update({status:"blocked",message:"Press Play in the video to continue."});}
+    }else this.player.cueVideoById(selection);
   }
   handleState(data:number) {
     if (!this.alive) return;
@@ -70,12 +74,18 @@ export class SourceController {
       this.pause(); return;
     }
     if (data === 0) {
-      if (!this.endHandled) {this.endHandled=true; this.next();}
+      if (!this.endHandled) {
+        const continueMusic=this.kind==="music" && this.allowed &&
+          (typeof document==="undefined" || !document.hidden) &&
+          ["playing","buffering"].includes(this.snapshot.status);
+        this.endHandled=true; this.next(continueMusic);
+      }
       return;
     }
     const states:Record<number,Status>={[-1]:"ready",1:"playing",2:"paused",3:"buffering",5:"ready"};
     if (states[data]) this.update({status:states[data],message:""});
-    if (data===1 || data===5) this.endHandled=false;
+    // A replacement must actually play before another ended event advances it.
+    if (data===1) this.endHandled=false;
   }
   poll() {
     if (!this.ready || !this.player || !this.alive) return;
@@ -97,11 +107,11 @@ export class SourceController {
       this.update({source,time:cueTime,volume:Number.isFinite(volume)?volume:this.snapshot.volume,muted});
     } catch { /* A destroyed or still-loading iframe can temporarily reject calls. */ }
   }
-  next() {
+  next(continueMusic=false) {
     const {source,start}=selectSource(this.kind,this.history,this.random);
     this.start=start; this.history=[...this.history,source.id].slice(-3);
     this.saveHistory([...this.history]);
-    this.update({source,time:start,message:""}); this.cue();
+    this.update({source,time:start,message:""}); this.cue(continueMusic);
   }
   retry() {this.cue();}
   /** Called synchronously by the launch click. Never retained for a later ready event. */
