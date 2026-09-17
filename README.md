@@ -46,7 +46,7 @@ Tests cover the queue and controller lifecycle with a fake YouTube adapter. Actu
 - `lib/preferences.ts`: bounded, versioned browser preferences with a memory-only fallback when storage is unavailable.
 - `lib/webmcp.ts`: optional `get_mix_state` and `pause_mix` browser tools. Native manual playback stays manual. Browsers without WebMCP keep all visible functionality.
 
-There is no application account, database, analytics service, audio extraction, or waveform analyzer. The Sites starter supplies the local React/TypeScript preview and build tooling; local authentication simulation is disabled. Production uses a static Next.js export served by Vercel.
+There is no application account, database, audio extraction, or waveform analyzer. The live site uses Vercel Web Analytics for visitor and page-view statistics; no custom listening events are sent. The Sites starter supplies the local React/TypeScript preview and build tooling; local authentication simulation is disabled. Production uses a static Next.js export served by Vercel.
 
 ## Evidence boundaries
 
