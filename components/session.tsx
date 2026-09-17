@@ -96,7 +96,7 @@ export default function Session() {
     catch{setNotice("Fullscreen isn’t available here. Use a separate browser window.");}
   }
   return <>
-    <main className="entry" hidden={started}><button className="enter-button" onClick={launch}>obliterate me<span aria-hidden="true">↗</span></button><Credits/></main>
+    <main className="entry" hidden={started}><div className="entry-launch"><button className="enter-button" onClick={launch}>obliterate me<span aria-hidden="true">↗</span></button><p className="entry-subtitle">focus by force</p></div><Credits/></main>
     <main className="session" ref={main} hidden={!started}>
     {started?<Visualizer mode={mode} music={music} style={visualStyle}/>:null}
     <header className="session-header">

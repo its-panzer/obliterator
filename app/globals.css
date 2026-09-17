@@ -4,6 +4,8 @@
 body { margin:0; background:var(--background); color:var(--foreground); font-family:"Avenir Next",Avenir,"Helvetica Neue",sans-serif; }
 button { font:inherit; cursor:pointer; }
 .entry { min-height:100svh; display:grid; place-items:center; position:relative; }
+.entry-launch { position:relative; }
+.entry-subtitle { position:absolute; top:100%; left:0; width:100%; margin:18px 0 0; color:var(--muted); font-size:14px; font-weight:400; letter-spacing:.04em; text-align:center; }
 .site-credits { display:flex; align-items:center; gap:12px; color:var(--muted); font-size:12px; line-height:1.5; margin-top:20px; }
 .site-credits a { padding:5px 0; }
 .site-credits a:hover { color:var(--foreground); text-decoration:underline; text-underline-offset:3px; }
